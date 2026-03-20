@@ -35,39 +35,43 @@
 <body class="bg-slate-100 min-h-screen flex flex-col items-center justify-start p-6 text-slate-800 font-sans">
 
     <!-- Area di anteprima e strumenti di integrazione -->
-    <div class="max-w-4xl w-full text-center space-y-8 my-10">
+    <div class="max-w-5xl w-full text-center space-y-8 my-10">
         <div class="space-y-4">
             <h1 class="text-4xl font-black text-slate-900 tracking-tight italic">COOKIE<span class="text-[#cdaf55]">MASTER</span> PRO</h1>
             <p class="text-slate-500 text-lg">Soluzione avanzata per la gestione del consenso in Dark Gold.</p>
         </div>
 
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
             <!-- Monitoraggio del consenso in tempo reale -->
             <div class="bg-white p-6 rounded-3xl shadow-xl border border-slate-200 text-left relative overflow-hidden flex flex-col">
                 <div class="absolute top-0 left-0 w-full h-1 bg-green-500"></div>
-                <h2 class="text-xs font-bold uppercase tracking-widest text-slate-400 mb-4 flex items-center gap-2">
+                <h2 class="text-sm font-bold uppercase tracking-widest text-slate-400 mb-4 flex items-center gap-2">
                     <span class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
                     Stato Attuale del Consenso
                 </h2>
                 <pre id="consent-debug" class="bg-slate-900 text-green-400 p-4 rounded-xl text-xs font-mono overflow-x-auto leading-relaxed shadow-inner flex-1 italic">Caricamento in corso...</pre>
                 <div class="mt-4 p-4 bg-blue-50 rounded-2xl border border-blue-100">
-                    <button onclick="clearConsent()" class="w-full text-xs font-bold text-blue-600 hover:text-blue-800 transition-colors underline decoration-2 underline-offset-4">
+                    <button onclick="clearConsent()" class="w-full text-sm font-bold text-blue-600 hover:text-blue-800 transition-colors underline decoration-2 underline-offset-4">
                         Resetta Consenso per nuovi test
                     </button>
                 </div>
             </div>
 
             <!-- Box per il codice di incorporamento dinamico -->
-            <div class="bg-white p-6 rounded-3xl shadow-xl border border-slate-200 text-left relative overflow-hidden">
+            <div class="bg-white p-6 rounded-3xl shadow-xl border border-slate-200 text-left relative overflow-hidden flex flex-col">
                 <div class="absolute top-0 left-0 w-full h-1 bg-indigo-500"></div>
-                <h2 class="text-xs font-bold uppercase tracking-widest text-slate-400 mb-4 flex items-center gap-2">
-                    Snippet JavaScript per l'Integrazione
+                <h2 class="text-sm font-bold uppercase tracking-widest text-slate-400 mb-4 flex items-center gap-2">
+                    Snippet Universale (Copia & Incolla)
                 </h2>
-                <div class="relative group">
-                    <pre id="embed-code-display" class="bg-slate-900 text-slate-300 p-4 rounded-xl text-[9px] font-mono border border-slate-800 overflow-x-auto leading-relaxed"></pre>
-                </div>
-                <div class="mt-4 text-[10px] text-slate-500 italic">
-                    Lo snippet riflette automaticamente le personalizzazioni attuali.
+                <p class="text-xs text-slate-500 mb-4">
+                    Incolla questo codice nel tag <code>&lt;head&gt;</code> o <code>&lt;body&gt;</code> del tuo sito. Il banner comunicherà automaticamente con il sito genitore.
+                </p>
+                <div class="relative group flex-1 flex flex-col">
+                    <button id="copy-btn" onclick="copySnippet()" class="absolute top-3 right-3 bg-indigo-500 hover:bg-indigo-600 text-white text-xs font-bold py-2 px-4 rounded-lg shadow-md transition-all z-10 flex items-center gap-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                        <span id="copy-text">Copia Codice</span>
+                    </button>
+                    <pre id="embed-code-display" class="bg-slate-900 text-slate-300 p-5 pt-12 rounded-xl text-xs font-mono border border-slate-800 overflow-x-auto leading-relaxed flex-1"></pre>
                 </div>
             </div>
         </div>
@@ -222,6 +226,21 @@
   iframe.style = "border:0; width:100%; height:100%; position:fixed; z-index:99999; bottom:0; left:0; pointer-events:none; overflow:hidden;";
   iframe.allowTransparency = "true";
   document.body.appendChild(iframe);
+
+  // Ascolta le preferenze provenienti dall'iframe del Cookie Banner
+  window.addEventListener('message', function(event) {
+    if (event.data && event.data.type === 'cookie_consent_update') {
+      var consent = event.data.consent;
+      console.log('SITO PRINCIPALE - Ricevute preferenze:', consent);
+      
+      // Salva una copia del consenso nel localStorage del dominio principale
+      localStorage.setItem('cookie_consent', JSON.stringify(consent));
+
+      // QUI INSERISCI LA TUA LOGICA, es: 
+      // se (consent.analytics) { carica Google Analytics }
+      // se (consent.marketing) { carica Facebook Pixel }
+    }
+  });
 })();
 <\/script>`;
             embedBox.innerText = jsSnippet;
@@ -302,7 +321,14 @@
         }
 
         function applyConsentLogic(consent) { 
-            console.log("Logica Consenso:", consent);
+            console.log("Logica Consenso (Iframe):", consent);
+            // Comunica le preferenze al sito genitore (se il banner è in un iframe)
+            if (window.parent !== window) {
+                window.parent.postMessage({
+                    type: 'cookie_consent_update',
+                    consent: consent
+                }, '*');
+            }
         }
 
         function updateDebugInfo() {
@@ -313,6 +339,28 @@
         function clearConsent() { 
             localStorage.removeItem(STORAGE_KEY); 
             location.reload(); 
+        }
+
+        function copySnippet() {
+            const snippetText = embedBox.innerText;
+            navigator.clipboard.writeText(snippetText).then(() => {
+                const btn = document.getElementById('copy-btn');
+                const textSpan = document.getElementById('copy-text');
+                const originalText = textSpan.innerText;
+                
+                textSpan.innerText = 'Copiato!';
+                btn.classList.replace('bg-indigo-500', 'bg-green-500');
+                btn.classList.replace('hover:bg-indigo-600', 'hover:bg-green-600');
+                
+                setTimeout(() => {
+                    textSpan.innerText = originalText;
+                    btn.classList.replace('bg-green-500', 'bg-indigo-500');
+                    btn.classList.replace('hover:bg-green-600', 'hover:bg-indigo-600');
+                }, 2000);
+            }).catch(err => {
+                console.error('Errore durante la copia:', err);
+                alert('Impossibile copiare il testo. Selezionalo manualmente.');
+            });
         }
     </script>
 </body>
